@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPS Test</title>
+    <style>
+        /* Styles for the game */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a1a, #444);
+            color: #f5f5f5;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            margin-bottom: 10px; /* Reduced margin for better spacing */
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        #countdown {
+            font-size: 1.5rem;
+            margin-bottom: 20px; /* Spacing below countdown */
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #infoContainer {
+            position: absolute; /* Position at the top left */
+            top: 20px; /* Spacing from top */
+            left: 20px; /* Spacing from left */
+            text-align: left; /* Align text to the left */
+        }
+
+        #clickBox {
+            width: 300px;
+            height: 300px;
+            border-radius: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #bbb;
+            transition: background-color 0.3s, color 0.3s, transform 0.1s;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+            user-select: none; /* Prevent text selection on double clicks */
+        }
+
+        #clickBox:hover:not(.disabled) {
+            background-color: rgba(255, 255, 255, 0.2); /* Lighter background on hover */
+        }
+
+        #clickBox:active {
+            transform: scale(0.95); /* Scale down animation on click */
+        }
+
+        #result {
+            font-size: 1.5rem;
+            display: none; /* Hidden until the game ends */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+        }
+
+        #restartButton, #pauseButton {
+            display: none; /* Initially hidden */
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            position: absolute; /* Absolute positioning */
+        }
+
+        #restartButton {
+            bottom: 20px; /* Position at bottom */
+        }
+
+        #pauseButton {
+            top: 20px; /* Position at top */
+            right: 20px; /* Position at right */
+        }
+
+        #githubButton {
+            position: absolute; /* Position at the bottom left */
+            bottom: 20px; /* Position from the bottom */
+            left: 20px; /* Position from the left */
+            padding: 10px 15px;
+            font-size: 1rem;
+            color: white;
+            background-color: #24292e; /* GitHub color */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none; /* Remove underline */
+            transition: background-color 0.3s;
+        }
+
+        #githubButton:hover {
+            background-color: #007bff; /* Change color on hover */
+        }
+
+        footer {
+            margin-top: auto; /* Position footer at the bottom */
+            font-size: 0.9rem;
+            color: #ccc;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        #themeSelector {
+            margin: 20px;
+            cursor: pointer;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        #themeSelector:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        .fade {
+            animation: fade 0.5s;
+        }
+
+        @keyframes fade {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CPS Test: Click as Fast as You Can!</h1>
+    <div id="countdown">Time: 10s</div> <!-- Countdown timer below the title -->
+    <div id="infoContainer">
+        <div id="highScore">High Score: 0</div>
+        <div id="result">Your CPS: 0</div> <!-- Result text -->
+    </div>
+    <div id="clickBox">Click Me!</div>
+    <button id="restartButton" onclick="startGame()">Restart Game</button>
+    <button id="pauseButton" onclick="togglePause()">Pause</button>
+    <button id="themeSelector" onclick="changeTheme()">Change Theme</button>
+    <a id="githubButton" href="https://github.com/USERNAME/YOUR-PROJECT" target="_blank">GitHub</a> <!-- GitHub Button -->
+    <footer>Made with ❤️ for fun!</footer>
+
+    <audio id="clickSound" src="click.mp3"></audio>
+    <audio id="gameOverSound" src="gameover.mp3"></audio>
+
+    <script>
+        let score = 0;
+        const gameDuration = 10; // Game lasts for 10 seconds
+        let timer;
+        let remainingTime = gameDuration;
+        let highScore = 0;
+        let isPaused = false;
+
+        const clickSound = document.getElementById('clickSound');
+        const gameOverSound = document.getElementById('gameOverSound');
+
+        const clickBox = document.getElementById('clickBox');
+        const highScoreDisplay = document.getElementById('highScore');
+        const resultDisplay = document.getElementById('result');
+        const countdownDisplay = document.getElementById('countdown');
+        const restartButton = document.getElementById('restartButton');
+        const pauseButton = document.getElementById('pauseButton');
+
+        // Function to handle clicking the box
+        function handleClick() {
+            if (!isPaused) {
+                score++;
+                clickSound.play(); // Play click sound
+                clickBox.innerText = score; // Update the box text to show the current score
+            }
+        }
+
+        // Countdown function that updates the timer display
+        function updateCountdown() {
+            if (!isPaused) {
+                remainingTime--;
+                countdownDisplay.innerText = `Time: ${remainingTime}s`;
+                if (remainingTime <= 0) {
+                    endGame();
+                }
+            }
+        }
+
+        // Start the game, resetting scores and displaying initial text
+        function startGame() {
+            score = 0;
+            remainingTime = gameDuration;
+            isPaused = false; // Reset pause state
+            resultDisplay.style.display = 'none'; // Hide result
+            restartButton.style.display = 'none'; // Hide restart button
+            pauseButton.style.display = 'block'; // Show pause button
+            highScoreDisplay.style.display = 'block'; // Show high score
+            countdownDisplay.style.display = 'block'; // Show countdown timer
+            clickBox.classList.remove('disabled'); // Remove disabled class
+            clickBox.style.color = "#bbb"; // Reset text color
+            clickBox.innerText = "Click Me!"; // Reset box text
+            timer = setInterval(updateCountdown, 1000); // Update timer every second
+            clickBox.addEventListener('click', handleClick); // Add click event
+            countdownDisplay.innerText = `Time: ${remainingTime}s`; // Show initial timer
+        }
+
+        // Pause/Resume the game
+        function togglePause() {
+            isPaused = !isPaused; // Toggle pause state
+            if (isPaused) {
+                pauseButton.innerText = "Resume"; // Change button text to "Resume"
+                clickBox.style.color = "#999"; // Change color to indicate paused state
+                clearInterval(timer); // Stop the countdown
+            } else {
+                pauseButton.innerText = "Pause"; // Change button text back to "Pause"
+                clickBox.style.color = "#bbb"; // Reset color
+                timer = setInterval(updateCountdown, 1000); // Resume the timer
+            }
+        }
+
+        // End the game, updating the UI accordingly
+        function endGame() {
+            clearInterval(timer); // Stop the countdown
+            clickBox.classList.add('disabled'); // Add disabled class to lock the box
+            clickBox.style.color = "#fff"; // Change text color on end
+            clickBox.innerText = "Time's up!"; // Change text to indicate end
+            const currentCPS = (score / gameDuration).toFixed(2);
+            resultDisplay.innerText = `Your CPS: ${currentCPS}`; // Display CPS in top left corner
+            resultDisplay.style.display = 'block'; // Show score
+            
+            // Show high score and update if necessary
+            if (currentCPS > highScore) {
+                highScore = currentCPS;
+                highScoreDisplay.innerText = `High Score: ${highScore}`;
+            }
+            countdownDisplay.style.display = 'none'; // Hide countdown
+            restartButton.style.display = 'block'; // Show restart button
+            pauseButton.style.display = 'none'; // Hide pause button at end
+
+            // Remove the click event listener to prevent further clicks
+            clickBox.removeEventListener('click', handleClick);
+        }
+
+        // Theme change functionality
+        function changeTheme() {
+            const themes = [
+                { background: '#1a1a1a', boxColor: 'rgba(255, 255, 255, 0.1)', textColor: '#bbb' },
+                { background: '#343a40', boxColor: 'rgba(255, 255, 255, 0.2)', textColor: '#fff' },
+                { background: '#007bff', boxColor: 'rgba(255, 255, 255, 0.3)', textColor: '#fff' }
+            ];
+
+            const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+            document.body.style.background = randomTheme.background;
+            clickBox.style.backgroundColor = randomTheme.boxColor;
+            clickBox.style.color = randomTheme.textColor;
+        }
+
+        // Start the game immediately on page load
+        startGame();
+    </script>
+
+</body>
+</html>
